@@ -1,10 +1,8 @@
 Reg_Number,Date,Service_Type,Cost,Mileage,Provider,Spare_Parts,Rating
-MH 46 YOLO 2025,2025-12-16,Oil Change,6000,40500,Merceds,oil filter,4
-MH 46 YOLO 2025,2025-12-16,Tire Rotation,60000,40500,Mercedes,Tyer,5
-MH 13 YOLO 2025,2025-12-16,Oil Change,3000,50500,Best oils,Oil filter,3.5
-MH 13 YOLO 2025,2025-12-16,Tire Rotation,30000,50500,MRF Tyers,Alloy wheels,4
-MH 13 YOLO 2025,2025-12-16,Oil change,4000,50540,TATA,no,5
-MH 15 YOLO 2025,2025-12-16,Oil Change,10000,60100,Castrol oil,None,4.5
-MH 15 YOLO 2025,2025-12-16,Tire Rotation,40000,60100,MRF ,None,5
-MH 15 YOLO 2025,2025-12-16,Brake Check,55000,60150,Lexus,Brake calibers,5
-MH 15 YOLO 2025,2025-12-16,Major Service,250000,70000,Lexus,None,5
+MH 45 YOLO 2025,2025-12-10,Oil Change,5000,31000,Mercedes,None,5
+MH 45 YOLO 2025,2025-12-13,Brake Check,19000,31000,Mercedes,Brake Calibers,5
+MH 45 YOLO 2025,2025-12-17,Major Service,150000,32000,Mercedes Motors,None,5
+MH 45 YOLO 2025,2025-12-17,Air Filter,45000,32000,Mercedes motors,None,5
+MH 17 YM 1990,2025-12-17,Oil Change,50000,25600,BMW motors,None,4.5
+MH 17 YM 1990,2025-12-17,Tire Rotation,75000,32000,BMW motors,spare wheel,5
+MH 45 YOLO 2025,2025-12-17,Tire Rotation,65000,45000,Mercedes motors,None,4
