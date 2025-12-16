@@ -2,43 +2,100 @@
 
 # class MaintenanceScheduler:
 #     def __init__(self):
+#         # Format: 'Service': {'km': interval_km, 'months': interval_months}
 #         self.service_intervals = {
-#             'oil_change': {'km': 5000, 'months': 6},
-#             'tire_rotation': {'km': 10000, 'months': 12},
-#             'brake_inspection': {'km': 15000, 'months': 12},
-#             'Air filter replacement': {'km': 30000, 'months': 24},
+#             'Oil Change': {'km': 5000, 'months': 6},
+#             'Tire Rotation': {'km': 10000, 'months': 12},
+#             'Brake Check': {'km': 15000, 'months': 12},
+#             'Major Service': {'km': 30000, 'months': 24},
+#             'Air Filter': {'km': 20000, 'months': 12}
 #         }
 
-#     def get_upcoming_services(self, current_mileage, last_service_date_str=None):
-#         alerts = []
+#     def get_full_schedule_status(self, current_mileage, last_service_data={}):
+#         """
+#         Returns a complete list of all services with their status.
+#         Handles Exact Matches, Missed Milestones, and Future Predictions.
+#         """
+#         schedule = []
         
-#         # 1. Mileage Check
 #         for service, rules in self.service_intervals.items():
-#             interval = rules['km']
-#             next_due_km = ((current_mileage // interval) + 1) * interval
-#             remaining_km = next_due_km - current_mileage
+#             interval_km = rules['km']
+#             interval_time = rules['months']
             
-#             # Priority Logic
-#             if remaining_km <= 500:
-#                 priority = "🔴 URGENT"
-#             elif remaining_km <= 1500:
-#                 priority = "⚠️  HIGH PRIORITY"
+#             # Defaults
+#             last_done_str = "Never"
+#             status = "OK"
+            
+#             # --- CASE 1: HISTORY EXISTS ---
+#             if service in last_service_data:
+#                 last_km = last_service_data[service]['mileage']
+#                 last_date = last_service_data[service]['date']
+#                 last_done_str = f"{last_date} ({last_km} km)"
+                
+#                 # Next due based on last service
+#                 next_due_km = last_km + interval_km
+#                 remaining_km = next_due_km - current_mileage
+                
+#                 # Time Check
+#                 try:
+#                     last_date_obj = datetime.strptime(last_date, "%Y-%m-%d")
+#                     months_passed = (datetime.now() - last_date_obj).days / 30
+#                     if months_passed >= interval_time:
+#                          status = f"OVERDUE (Time: {int(months_passed)} mo)"
+#                 except: pass
+
+#             # --- CASE 2: NO HISTORY (Brand New or Unlogged) ---
 #             else:
-#                 priority = "MEDIUM"
+#                 # Sub-case A: Exact Multiple (e.g., 55000 % 5000 == 0) -> DUE NOW
+#                 if current_mileage > 0 and current_mileage % interval_km == 0:
+#                     next_due_km = current_mileage
+#                     remaining_km = 0
+#                     status = "DUE NOW (Milestone Reached)"
+                
+#                 # Sub-case B: Past the first interval (e.g., 55000 > 30000) -> MISSED
+#                 # Logic: We find the milestone we passed most recently
+#                 elif current_mileage > interval_km:
+#                     passed_milestone = (current_mileage // interval_km) * interval_km
+#                     next_due_km = passed_milestone 
+#                     remaining_km = next_due_km - current_mileage # Negative value
+#                     status = f"MISSED ({abs(remaining_km)} km ago)"
+                
+#                 # Sub-case C: Normal Upcoming (e.g., 4000 vs 5000) -> FUTURE
+#                 else:
+#                     next_due_km = interval_km
+#                     remaining_km = next_due_km - current_mileage
 
-#             if remaining_km <= 2000: # Only show if somewhat close
-#                 alerts.append(f"{priority}: {service} due in {remaining_km} km")
-
-#         # 2. Date Check (Bonus Logic)
-#         if last_service_date_str:
-#             last_date = datetime.strptime(last_service_date_str, "%Y-%m-%d")
-#             months_passed = (datetime.now() - last_date).days / 30
+#             # Final Status Logic (if not already flagged by Time/Missed/Due Now)
+#             if status == "OK":
+#                 if remaining_km <= 0:
+#                     status = "OVERDUE"
+#                 elif remaining_km <= 1500:
+#                     status = "DUE SOON"
             
-#             for service, rules in self.service_intervals.items():
-#                 if months_passed >= rules['months']:
-#                     alerts.append(f"📅 OVERDUE: {service} (Time Limit Reached)")
+#             schedule.append({
+#                 "Service": service,
+#                 "Interval": f"{interval_km} km / {interval_time} mo",
+#                 "Last Done": last_done_str,
+#                 "Next Due": f"{next_due_km} km ({remaining_km} km left)",
+#                 "Status": status
+#             })
+            
+#         return schedule
+
+#     def get_due_services(self, current_mileage, last_service_data={}):
+#         """Returns only the urgent items for alerts."""
+#         full_schedule = self.get_full_schedule_status(current_mileage, last_service_data)
+#         due_list = []
         
-#         return alerts
+#         # Define what counts as "Bad" enough to alert the user
+#         alert_triggers = ["OVERDUE", "DUE SOON", "MISSED", "DUE NOW"]
+        
+#         for item in full_schedule:
+#             # We check if any of the trigger words appear in the status string
+#             if any(trigger in item['Status'] for trigger in alert_triggers):
+#                 due_list.append({'service': item['Service'], 'reason': item['Status']})
+                
+#         return due_list
 
 from datetime import datetime
 
@@ -49,61 +106,92 @@ class MaintenanceScheduler:
             'Oil Change': {'km': 5000, 'months': 6},
             'Tire Rotation': {'km': 10000, 'months': 12},
             'Brake Check': {'km': 15000, 'months': 12},
-            'Major Service': {'km': 30000, 'months': 24}
+            'Major Service': {'km': 30000, 'months': 24},
+            'Air Filter': {'km': 20000, 'months': 12}
         }
 
-    def get_due_services(self, current_mileage, last_service_data={}):
+    def get_full_schedule_status(self, current_mileage, last_service_data={}):
         """
-        last_service_data format: 
-        {'Oil Change': {'date': '2024-01-01', 'mileage': 4500}, ...}
+        Returns a complete list of all services with their status.
+        Handles Exact Matches, Missed Milestones, and Future Predictions.
         """
-        due_list = []
+        schedule = []
         
         for service, rules in self.service_intervals.items():
-            is_due = False
-            reason = ""
-            interval = rules['km']
+            interval_km = rules['km']
+            interval_time = rules['months']
             
-            # --- LOGIC BRANCH 1: HISTORY EXISTS ---
+            # Defaults
+            last_done_str = "Never"
+            status = "OK"
+            
+            # --- CASE 1: HISTORY EXISTS ---
             if service in last_service_data:
                 last_km = last_service_data[service]['mileage']
-                last_date_str = last_service_data[service]['date']
+                last_date = last_service_data[service]['date']
+                last_done_str = f"{last_date} ({last_km} km)"
                 
-                # Mileage Check based on LAST SERVICE
-                next_due_km = last_km + interval
+                # Next due based on last service
+                next_due_km = last_km + interval_km
                 remaining_km = next_due_km - current_mileage
                 
                 # Time Check
                 try:
-                    last_date = datetime.strptime(last_date_str, "%Y-%m-%d")
-                    months_passed = (datetime.now() - last_date).days / 30
-                except:
-                    months_passed = 0
+                    last_date_obj = datetime.strptime(last_date, "%Y-%m-%d")
+                    months_passed = (datetime.now() - last_date_obj).days / 30
+                    if months_passed >= interval_time:
+                         status = f"OVERDUE (Time: {int(months_passed)} mo)"
+                except: pass
 
-                if remaining_km <= 1500:
-                    is_due = True
-                    reason = f"Due in {remaining_km} km (Last done at {last_km} km)"
-                elif months_passed >= rules['months']:
-                    is_due = True
-                    reason = f"Overdue by time ({int(months_passed)} months)"
-
-            # --- LOGIC BRANCH 2: NO HISTORY (Brand New Car) ---
+            # --- CASE 2: NO HISTORY (Brand New or Unlogged) ---
             else:
-                # Check if we are sitting EXACTLY on a due milestone (The Innova Fix)
-                if current_mileage > 0 and current_mileage % interval == 0:
+                # Sub-case A: Exact Multiple (e.g., 55000 % 5000 == 0) -> DUE NOW
+                if current_mileage > 0 and current_mileage % interval_km == 0:
+                    next_due_km = current_mileage
                     remaining_km = 0
-                    is_due = True
-                    reason = "Due NOW (Mileage Interval Reached)"
+                    status = "DUE NOW (Milestone Reached)"
+                
+                # Sub-case B: Past the first interval (e.g., 55000 > 30000) -> MISSED
+                # Logic: We find the milestone we passed most recently
+                elif current_mileage > interval_km:
+                    passed_milestone = (current_mileage // interval_km) * interval_km
+                    next_due_km = passed_milestone 
+                    remaining_km = next_due_km - current_mileage # Negative value
+                    status = f"MISSED ({abs(remaining_km)} km ago)"
+                
+                # Sub-case C: Normal Upcoming (e.g., 4000 vs 5000) -> FUTURE
                 else:
-                    # Predictive: Find the NEXT milestone
-                    next_due_km = ((current_mileage // interval) + 1) * interval
+                    next_due_km = interval_km
                     remaining_km = next_due_km - current_mileage
-                    
-                    if remaining_km <= 1500:
-                        is_due = True
-                        reason = f"Due in {remaining_km} km"
 
-            if is_due:
-                due_list.append({'service': service, 'reason': reason})
+            # Final Status Logic (if not already flagged by Time/Missed/Due Now)
+            if status == "OK":
+                if remaining_km <= 0:
+                    status = "OVERDUE"
+                elif remaining_km <= 1500:
+                    status = "DUE SOON"
+            
+            schedule.append({
+                "Service": service,
+                "Interval": f"{interval_km} km / {interval_time} mo",
+                "Last Done": last_done_str,
+                "Next Due": f"{next_due_km} km ({remaining_km} km left)",
+                "Status": status
+            })
+            
+        return schedule
+
+    def get_due_services(self, current_mileage, last_service_data={}):
+        """Returns only the urgent items for alerts."""
+        full_schedule = self.get_full_schedule_status(current_mileage, last_service_data)
+        due_list = []
         
+        # FIX: Check if the status string CONTAINS any of these keywords
+        # This catches "MISSED (5000 km ago)" because it contains "MISSED"
+        alert_triggers = ["OVERDUE", "DUE SOON", "MISSED", "DUE NOW"]
+        
+        for item in full_schedule:
+            if any(trigger in item['Status'] for trigger in alert_triggers):
+                due_list.append({'service': item['Service'], 'reason': item['Status']})
+                
         return due_list
